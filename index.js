@@ -22,7 +22,7 @@ app.get("/brains", (request, response) => {
 
 app.get("/brains/:id", (request, response) => {
   return "no";
-});n       
+});
 
 //POST
 app.post("/create", (request, response) => {
