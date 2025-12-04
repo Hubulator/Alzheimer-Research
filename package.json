@@ -1,0 +1,23 @@
+{
+  "name": "express-essentials",
+  "version": "1.0.0",
+  "description": "DNA sequence of healthy and AD patients",
+  "license": "ISC",
+  "author": "GraceAnna Akparanta",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon --exec babel-node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "nodemon": "^3.1.11"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.28.3",
+    "@babel/core": "^7.28.5",
+    "@babel/node": "^7.28.0",
+    "@babel/preset-env": "^7.28.5"
+  }
+}

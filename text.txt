@@ -1,0 +1,140 @@
+document.addEventListener("DOMContentLoaded", async () => {
+    const tableHeadRow = document.getElementById("tableHeadRow");
+    const tableBody = document.getElementById("tableBody");
+    const statusEl = document.getElementById("status");
+    const modal = document.getElementById("detailModal");
+    const modalBody = document.getElementById("modalBody");
+    const closeModalBtn = document.getElementById("closeModal");
+
+    // Columns visible in the main table
+    const mainColumns = ["Run", "diagnosis", "sex", "brain_region"];
+
+    // All columns, used for the detail modal
+    const detailColumns = [
+        "Run", "AGE", "Organism", "sex", "brain_region", "diagnosis", "source_name", 
+        "Read 1", "Read 2", "Read 3", "Read 4", "Read 5", "Read 6", "Read 7", "Read 8", 
+        "Read 9", "Read 10"
+    ];
+
+    let fullDataSet = [];
+
+    // Setup modal close behavior
+    closeModalBtn.onclick = () => modal.classList.add('hidden');
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            modal.classList.add('hidden');
+        }
+    };
+
+    /**
+     * Shows the modal populated with details of the selected item.
+     * @param {Object} item - The full data object for the selected row.
+     */
+    function showDetails(item) {
+        let htmlContent = `<h3 class="text-xl font-bold text-indigo-700 mb-4 border-b pb-2">Run ID: ${item.Run}</h3>`;
+        htmlContent += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
+
+        // Utility to format key names
+        const formatKey = (key) => key.toUpperCase().replace('_', ' ');
+
+        detailColumns.forEach(key => {
+            const value = item[key] !== undefined && item[key] !== null && item[key] !== "" ? item[key] : 'N/A';
+            const displayKey = formatKey(key);
+
+            // Special styling for key demographic/diagnosis info
+            const valueClass = ['diagnosis', 'sex', 'AGE'].includes(key) ? 'font-semibold text-gray-900' : 'text-gray-700';
+            
+            // Handle long sequencing data (Reads)
+            if (key.startsWith("Read")) {
+                htmlContent += `
+                    <div class="md:col-span-2 mt-4 p-3 bg-gray-50 rounded-lg border">
+                        <p class="text-sm font-medium text-indigo-600 mb-1">${displayKey}:</p>
+                        <textarea readonly class="w-full text-xs font-mono bg-white border-none resize-none h-20 overflow-auto">${value}</textarea>
+                    </div>`;
+            } else {
+                htmlContent += `
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">${displayKey}:</p>
+                        <p class="${valueClass} truncate">${value}</p>
+                    </div>`;
+            }
+        });
+
+        htmlContent += `</div>`;
+        modalBody.innerHTML = htmlContent;
+        modal.classList.remove('hidden');
+    }
+
+    /**
+     * Handles the data fetching and table rendering logic.
+     */
+    async function fetchDataAndBuildTable() {
+        statusEl.textContent = "Loading data...";
+        statusEl.className = 'text-lg font-medium mt-3 text-indigo-500';
+        
+        try {
+            const response = await fetch("/brains");
+            if (!response.ok) {
+                throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+            }
+            fullDataSet = await response.json();
+
+            if (!Array.isArray(fullDataSet)) {
+                fullDataSet = [fullDataSet];
+            }
+
+            // 1. Build the header
+            tableHeadRow.innerHTML = "";
+            mainColumns.forEach((col) => {
+                const th = document.createElement("th");
+                th.textContent = col.toUpperCase().replace('_', ' ');
+                th.setAttribute('scope', 'col');
+                th.className = "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider min-w-[100px]";
+                tableHeadRow.appendChild(th);
+            });
+
+            // 2. Build data rows
+            tableBody.innerHTML = "";
+            if (fullDataSet.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="${mainColumns.length}" class="p-4 text-center text-gray-500">No data found in the server response.</td></tr>`;
+                statusEl.textContent = "Data loaded (0 records found).";
+                statusEl.className = 'text-lg font-medium mt-3 text-red-500';
+                return;
+            }
+
+            fullDataSet.forEach((item, index) => {
+                const tr = document.createElement("tr");
+                tr.className = `hover:bg-indigo-100 cursor-pointer transition duration-150 ease-in-out ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`;
+                
+                // Add click listener to show details
+                tr.onclick = () => showDetails(item);
+
+                mainColumns.forEach((col) => {
+                    const td = document.createElement("td");
+                    const cellContent = item[col] !== undefined && item[col] !== null && item[col] !== "" ? item[col] : '-';
+                    td.textContent = cellContent;
+                    td.className = "px-4 py-3 whitespace-nowrap text-sm text-gray-800";
+                    
+                    // Highlight the primary ID and Diagnosis columns
+                    if (col === 'Run' || col === 'diagnosis') {
+                        td.classList.add('font-semibold', 'text-indigo-600');
+                    }
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+
+            // Success status update
+            statusEl.textContent = `Successfully loaded ${fullDataSet.length} records. Click a row for details.`;
+            statusEl.className = 'text-lg font-medium mt-3 text-green-600';
+            
+        } catch (err) {
+            console.error("Error rendering table:", err);
+            statusEl.textContent = `Failed to load data from server. Error: ${err.message}`;
+            statusEl.className = 'text-lg font-medium mt-3 text-red-600';
+            tableBody.innerHTML = `<tr><td colspan="${mainColumns.length}" class="p-4 text-center text-red-500">Failed to connect to backend API.</td></tr>`;
+        }
+    }
+
+    fetchDataAndBuildTable();
+});
